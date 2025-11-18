@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::io::Error;
+// use std::io::Error;
 // standard
 use std::os::fd::AsRawFd;
 use std::net::{Ipv4Addr, IpAddr, SocketAddrV4, SocketAddrV6};
@@ -9,14 +9,13 @@ use std::net::{Ipv4Addr, IpAddr, SocketAddrV4, SocketAddrV6};
 use nix::sys::socket::{
     MsgFlags, recv
 };
-use socket2::{Socket, Domain, Type, SockAddr};
-use std::fs::File;
-use tokio::io::unix::AsyncFd;
-use std::net::TcpStream;
+use socket2::{Domain, Protocol, SockAddr, Socket, Type};
+// use std::fs::File;
+// use tokio::io::unix::AsyncFd;
+// use std::net::TcpStream;
 
 // other util
 use get_if_addrs::get_if_addrs;
-use serde::{Serialize, Deserialize};
 use bincode::{Decode, Encode, config};
 
 #[derive(Encode, Decode)]
@@ -43,6 +42,9 @@ pub fn client_arg_validation(args: &Vec<String>) -> Result<(), String> {
 }
 
 pub fn client_connect(args: &Vec<String>) -> Result<Socket, String> {
+
+    println!("Connecting to addr: {}", args[1]);
+    println!("Port: {}", args[2]);
     let local_ip: IpAddr = args[1].parse().unwrap();
     let port: u16 = match args[2].parse() {
         Ok(p) => p,
@@ -54,7 +56,7 @@ pub fn client_connect(args: &Vec<String>) -> Result<Socket, String> {
         IpAddr::V6(v6) => (Domain::IPV6, SockAddr::from(SocketAddrV6::new(v6, port, 0, 0))),
     };
     
-    let socket = match Socket::new(domain, Type::DGRAM, None) {
+    let socket = match Socket::new(domain, Type::DGRAM, Some(Protocol::UDP)) {
         Ok(s) => {s},
         Err(_e) => return Err("[CLIENT] Socket Creation Error".into())
     };
@@ -160,7 +162,7 @@ pub fn setup_server(args: &Vec<String>) -> Result<Socket, String> {
     };
 
 
-    let socket = match Socket::new(domain, Type::STREAM, None) {
+    let socket = match Socket::new(domain, Type::DGRAM, Some(Protocol::UDP)) {
         Ok(s) => s,
         Err(e) => {
             return Err(format!("[SERVER] Socket creation failed: {}", e))
@@ -174,18 +176,30 @@ pub fn setup_server(args: &Vec<String>) -> Result<Socket, String> {
         }
     }
 
-    match socket.listen(5) {
-        Ok(()) => {},
-        Err(e) => {
-            return Err(format!("[SERVER] Listen failed: {}", e))
-        }
-    }
+    //not on udp
+    // match socket.listen(5) {
+    //     Ok(()) => {},
+    //     Err(e) => {
+    //         return Err(format!("[SERVER] Listen failed: {}", e))
+    //     }
+    // }
 
     let local_addr = socket.local_addr().expect("[SERVER] Could not get local address");
     let std_addr = local_addr.as_socket().unwrap();
     println!("[SERVER] Server listening on {}", std_addr);
 
     return Ok(socket)
+}
+
+pub fn deserialize_message(buffer: &[u8]) -> Result<(Message, usize), String> {
+
+    let data = match bincode::decode_from_slice::<Message, _>(buffer, config::standard()) {
+        Ok(d) => d,
+        Err(e) => {
+            return Err(format!("[SERVER] Decode error: {}", e))
+        }
+    };
+    return Ok(data);
 }
 // --- END ---
 
