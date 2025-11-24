@@ -1,6 +1,7 @@
 mod cipher;
 mod networking_util;
 
+use std::io::Bytes;
 // standard
 // use ::std::os::fd::AsRawFd;
 // use std::result;
@@ -104,11 +105,13 @@ async fn main() {
                     }
                 };
 
-                println!("{}, SEQ: {}", data.message, data.seq_number);
+                println!("{}, SEQ: {}", data.message.trim_end(), data.seq_number);
 
                 // send back ack
                 let ack_buf = [data.seq_number];
-                let _ = tokio_listener.send_to(&ack_buf, addr).await;
+                let bytes = tokio_listener.send_to(&ack_buf, addr).await;
+
+                println!("Sent {} bytes", bytes.unwrap())
             }
             Err(e) => {
                 eprintln!("[SERVER] recv_from failed: {}", e);

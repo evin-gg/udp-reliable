@@ -6,18 +6,10 @@ mod networking_util;
 use networking_util::{
     check_valid_ip, client_response_handler, client_arg_validation, client_connect, send_message
 };
-use rand::seq;
-// use nix::libc::user;
-// use tokio::io::Interest;
-// use tokio::io::unix::AsyncFd;
-// use tokio::net::TcpListener;
-// use serde::Serialize;
 
 use std::{io::{BufRead, BufReader}, net::UdpSocket};
 use::std::{process, env};
 use std::fs::File;
-// use std::os::unix::io::AsRawFd;
-// use bincode::{Encode, Decode};
 
 // data structure for sending over
 use networking_util::Message;
@@ -59,13 +51,7 @@ async fn main() {
         }
     };
 
-    // match socket.set_nonblocking(true) {
-    //     Ok(()) => {},
-    //     Err(e) => {
-    //         println!("[SERVER] Failed to set socket to non-blocking: {}", e);
-    //         process::exit(1);
-    //     }
-    // };
+    let std_socket: UdpSocket = socket.into();
 
     loop {
         // listen for keyboard inputs
@@ -81,12 +67,12 @@ async fn main() {
             message: user_input,
         };
 
-        seq_number += 1;
+        
 
-        println!("Message and sequence number: {} {}fromclient", data.message, data.seq_number);
+        println!("[CLIENT] Message and seq number: {} {}", data.message.trim_end(), data.seq_number);
 
         // send the message 
-        match send_message(&socket, &data) {
+        match send_message(&std_socket, &data) {
             Ok(()) => {},
             Err(e) => {
                 println!("{}", e);
@@ -95,40 +81,14 @@ async fn main() {
         }
 
         // wait for ack, if no response in time resend
+        match wait_ack(&std_socket, &data, args[3].parse().unwrap(), args[4].parse().unwrap()) {
+            Ok(()) => {},
+            Err(e) => {
+                println!("{}", e);
+            }
+        };
 
-        wait_ack(&socket, &data);
+        seq_number += 1;
         
     }
-    
-    // ----------------------------------------------------------------------------------------------
-    //wait for acks
-
-    // convert socket to listener
-    // let listener: std::net::TcpListener = socket.into();
-    // let tokio_listener = match TcpListener::from_std(listener) {
-    //     Ok(listener) => {listener},
-    //     Err(e) => {
-    //         eprintln!("[SERVER] Failed to convert socket to a Tokio listener: {}", e);
-    //         process::exit(1);
-    //     }
-    // };
-
-    // match format_send(args.clone(), &socket) {
-    //     Ok(()) => {},
-    //     Err(e) => {
-    //         eprintln!("[CLIENT] Error Sending Data {}", e);
-    //         process::exit(1);
-    //     }
-    // };
-
-
-        // Send the formatted data
-        
-
-        
-    // println!("SLEEPING FOR 2 SECONDS");
-    // std::thread::sleep(Duration::from_secs(2));
-
-    // Receive the response
-    // client_response_handler(&socket);
 }

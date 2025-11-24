@@ -1,12 +1,11 @@
 #![allow(dead_code)]
-
-use std::mem::MaybeUninit;
 // use std::io::Error;
 // standard
 use std::os::fd::AsRawFd;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4, SocketAddrV6, UdpSocket};
 use std::time::Duration;
 
+use nix::libc::PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP;
 // network sockets
 use nix::sys::socket::{
     MsgFlags, recv
@@ -76,7 +75,7 @@ pub fn client_connect(args: &Vec<String>) -> Result<Socket, String> {
 }
 
 // sends the message
-pub fn send_message(serverfd: &Socket, data: &Message) -> Result<(), String> {
+pub fn send_message(serverfd: &UdpSocket, data: &Message) -> Result<(), String> {
 
     let byte_buffer= match bincode::encode_to_vec(&data, bincode::config::standard()) {
         Ok(b) => b,
@@ -85,13 +84,15 @@ pub fn send_message(serverfd: &Socket, data: &Message) -> Result<(), String> {
 
     match serverfd.send(&byte_buffer) {
         Ok(_) => {},
-        Err(_e) => {return Err("[CLIENT] could not send message".into())}
+        Err(_e) => {
+            return Err("[CLIENT] could not send message".into())
+        }
     };
 
     Ok(())
 }
 
-pub fn wait_ack(serverfd: &Socket, data: &Message) -> () {
+pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32) -> Result<(), String> {
     let cloned_fd = serverfd.try_clone().unwrap();
     let std_socket: UdpSocket = cloned_fd.into();
 
@@ -99,21 +100,23 @@ pub fn wait_ack(serverfd: &Socket, data: &Message) -> () {
 
     let mut buf = [0u8];
 
-
-    for _n in 0..3 {
+    std::thread::sleep(Duration::from_secs(1));
+    for n in 0..retries {
         match std_socket.recv(&mut buf) {
             Ok(_len) => {
-                println!("Ack/SeqNumber = {}", buf[0]);
-                return;
+                println!("Received Ack/SeqNumber = {}", buf[0]);
+                return Ok(())
             }
             Err(_e) => {
-                println!("[CLIENT] Retrying..");
+                println!("[CLIENT] No ACK, Retrying..({})", n);
                 _ = send_message(serverfd, data);
             }
         }   
 
-        std::thread::sleep(Duration::from_secs(2));
+        std::thread::sleep(Duration::from_secs(timeout));
     }
+
+    return Err(("[CLIENT] Did not receive ACK.").into());
     
 }
 
