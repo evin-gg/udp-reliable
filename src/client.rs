@@ -6,13 +6,14 @@ mod networking_util;
 use networking_util::{
     check_valid_ip, client_response_handler, client_arg_validation, client_connect, send_message
 };
+use rand::seq;
 // use nix::libc::user;
 // use tokio::io::Interest;
 // use tokio::io::unix::AsyncFd;
 // use tokio::net::TcpListener;
 // use serde::Serialize;
 
-use std::io::{BufRead, BufReader};
+use std::{io::{BufRead, BufReader}, net::UdpSocket};
 use::std::{process, env};
 use std::fs::File;
 // use std::os::unix::io::AsRawFd;
@@ -25,6 +26,8 @@ use crate::networking_util::wait_ack;
 
 #[tokio::main]
 async fn main() {
+
+    let mut seq_number: u8 = 0;
 
     // get user args
     let args: Vec<String> = env::args().collect();
@@ -68,18 +71,19 @@ async fn main() {
         // listen for keyboard inputs
         let mut input = BufReader::new(File::open("/dev/tty").unwrap());
         println!("Enter Message");
-        print!(">>");
 
         let mut user_input = String::new();
         input.read_line(&mut user_input).expect("Failed to get input");
 
         // create the message
         let data: Message = Message {
-            seq_number: 1,
+            seq_number: seq_number,
             message: user_input,
         };
 
-        println!("Message and sequence number: {} {}", data.message, data.seq_number);
+        seq_number += 1;
+
+        println!("Message and sequence number: {} {}fromclient", data.message, data.seq_number);
 
         // send the message 
         match send_message(&socket, &data) {
@@ -91,7 +95,9 @@ async fn main() {
         }
 
         // wait for ack, if no response in time resend
-        wait_ack(&socket);
+
+        wait_ack(&socket, &data);
+        
     }
     
     // ----------------------------------------------------------------------------------------------

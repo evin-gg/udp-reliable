@@ -19,7 +19,7 @@ use tokio::net::{ UdpSocket };
 // use tokio::io::{AsyncReadExt};
 
 // other util
-use networking_util::{check_valid_ip, server_arg_validation, setup_server};
+use networking_util::{send_ack, check_valid_ip, server_arg_validation, setup_server};
 
 use crate::networking_util::Message;
 use crate::networking_util::deserialize_message;
@@ -104,45 +104,16 @@ async fn main() {
                     }
                 };
 
-                println!("{}", data.message)
+                println!("{}, SEQ: {}", data.message, data.seq_number);
+
+                // send back ack
+                let ack_buf = [data.seq_number];
+                let _ = tokio_listener.send_to(&ack_buf, addr).await;
             }
             Err(e) => {
                 eprintln!("[SERVER] recv_from failed: {}", e);
             }
         }
-
-        // tokio::spawn(async move {
-        //     let mut buf = [0u8; 1024];
-
-        //     loop {
-        //         let _n = match clientfd.read(&mut buf).await {
-        //             Ok(0) => return,
-        //             Ok(_n) => {
-        //                 println!("[SERVER] Client ID: {} connected", clientfd.as_raw_fd()); 
-        //                 println!("[SERVER] Payload: {}", String::from_utf8_lossy(&buf[.._n]));
-        //             },
-        //             Err(e) => {
-        //                 eprintln!("[SERVER] Could not read from client: {}", e);
-        //                 return;
-        //             }
-        //         };
-
-        //         let (response, _len): (Message, usize) = match bincode::decode_from_slice(&buf, config::standard()) {
-        //             Ok(r) => r,
-        //             Err(e) => {
-        //                 println!("{}", e);
-        //                 process::exit(1);
-        //             }
-        //         };
-
-        //         println!("{}", response.message);
-                
-        //         // let n: u64 = rand::random_range(0..4);
-        //         // std::thread::sleep(Duration::from_secs(n));
-
-        //         // send(clientfd.as_raw_fd(), response.as_bytes(), MsgFlags::empty()).expect("[SERVER] Error sending response");
-        //     }
-        // });
     }
 
     println!("[SERVER] Socket closed. Exiting");

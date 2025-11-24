@@ -4,7 +4,8 @@ use std::mem::MaybeUninit;
 // use std::io::Error;
 // standard
 use std::os::fd::AsRawFd;
-use std::net::{Ipv4Addr, IpAddr, SocketAddrV4, SocketAddrV6};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, SocketAddrV4, SocketAddrV6, UdpSocket};
+use std::time::Duration;
 
 // network sockets
 use nix::sys::socket::{
@@ -90,56 +91,31 @@ pub fn send_message(serverfd: &Socket, data: &Message) -> Result<(), String> {
     Ok(())
 }
 
-pub fn wait_ack(serverfd: &Socket) -> () {
-    let mut buf: [MaybeUninit<u8>; 1024] = [MaybeUninit::uninit(); 1024];
+pub fn wait_ack(serverfd: &Socket, data: &Message) -> () {
+    let cloned_fd = serverfd.try_clone().unwrap();
+    let std_socket: UdpSocket = cloned_fd.into();
+
+    std_socket.set_nonblocking(true).unwrap();
+
+    let mut buf = [0u8];
 
 
-    match serverfd.recv(&mut buf) {
-        Ok(len) => {
-            let mut initialized = Vec::with_capacity(len);
-
-            for i in 0..len {
-                initialized.push(unsafe { buf[i].assume_init() });
+    for _n in 0..3 {
+        match std_socket.recv(&mut buf) {
+            Ok(_len) => {
+                println!("Ack/SeqNumber = {}", buf[0]);
+                return;
             }
+            Err(_e) => {
+                println!("[CLIENT] Retrying..");
+                _ = send_message(serverfd, data);
+            }
+        }   
 
-            println!("Received: {}", String::from_utf8_lossy(&initialized));
-
-        }
-        Err(e) => {
-            println!("[CLIENT] Error receiving ack: {}", e);
-        }
+        std::thread::sleep(Duration::from_secs(2));
     }
+    
 }
-
-// formatting into send (variable)
-// pub fn format_send(args: Vec<String>, sock: &Socket) -> Result<(), String> {
-//     let payload = format!("{}|{}", args[2].to_ascii_lowercase(), args[1]);
-
-//     match send(sock.as_raw_fd(), payload.as_bytes(), MsgFlags::empty()) {
-//         Ok(_bytes) => {return Ok(())},
-//         Err(_e) => {
-//             return Err("[CLIENT] Could not send data".into());
-//         }
-//     };
-// }
-
-// pub fn client_send() -> Result<(), String> {
-//     Ok(());
-// }
-
-// async fn keyboard_fd() -> Result<AsyncFd<i32>, Error> {
-//     let kb = match File::open("/dev/input/event3") {
-//         Ok(f) => {f},
-//         Err(e) => {
-//             println!("{}", e)
-//         },
-//     };
-
-//     let kb_fd = kb.as_raw_fd();
-//     let kb_tokio_fd = AsyncFd::with_interest(kb_fd, Interest::READABLE);
-
-//     return kb_tokio_fd;
-// }
 
 // Reading a response
 pub fn client_response_handler(socket: &Socket) { 
@@ -222,6 +198,15 @@ pub fn deserialize_message(buffer: &[u8]) -> Result<(Message, usize), String> {
         }
     };
     return Ok(data);
+}
+
+pub fn send_ack(server_socket: &UdpSocket, client_addr: &SocketAddr, seq_number: u8) -> Result<(), String> {
+    let buf = [seq_number];
+
+    match server_socket.send_to(&buf, client_addr) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(format!("[SERVER] Failed to send ACK: {}", e)),
+    }
 }
 // --- END ---
 
