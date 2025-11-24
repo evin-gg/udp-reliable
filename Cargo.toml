@@ -13,6 +13,7 @@ path = "src/server.rs"
 
 [dependencies]
 bincode = "2.0.1"
+clap = { version = "4.5.53", features = ["derive"] }
 ctrlc = "3.5.0"
 get_if_addrs = "0.5.3"
 nix = { version = "0.30.1", features = ["socket", "fs", "signal"] }

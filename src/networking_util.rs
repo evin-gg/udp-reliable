@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::mem::MaybeUninit;
 // use std::io::Error;
 // standard
 use std::os::fd::AsRawFd;
@@ -87,6 +88,27 @@ pub fn send_message(serverfd: &Socket, data: &Message) -> Result<(), String> {
     };
 
     Ok(())
+}
+
+pub fn wait_ack(serverfd: &Socket) -> () {
+    let mut buf: [MaybeUninit<u8>; 1024] = [MaybeUninit::uninit(); 1024];
+
+
+    match serverfd.recv(&mut buf) {
+        Ok(len) => {
+            let mut initialized = Vec::with_capacity(len);
+
+            for i in 0..len {
+                initialized.push(unsafe { buf[i].assume_init() });
+            }
+
+            println!("Received: {}", String::from_utf8_lossy(&initialized));
+
+        }
+        Err(e) => {
+            println!("[CLIENT] Error receiving ack: {}", e);
+        }
+    }
 }
 
 // formatting into send (variable)

@@ -21,6 +21,8 @@ use std::fs::File;
 // data structure for sending over
 use networking_util::Message;
 
+use crate::networking_util::wait_ack;
+
 #[tokio::main]
 async fn main() {
 
@@ -54,19 +56,19 @@ async fn main() {
         }
     };
 
-    match socket.set_nonblocking(true) {
-        Ok(()) => {},
-        Err(e) => {
-            println!("[SERVER] Failed to set socket to non-blocking: {}", e);
-            process::exit(1);
-        }
-    };
+    // match socket.set_nonblocking(true) {
+    //     Ok(()) => {},
+    //     Err(e) => {
+    //         println!("[SERVER] Failed to set socket to non-blocking: {}", e);
+    //         process::exit(1);
+    //     }
+    // };
 
     loop {
         // listen for keyboard inputs
         let mut input = BufReader::new(File::open("/dev/tty").unwrap());
         println!("Enter Message");
-        print!(">");
+        print!(">>");
 
         let mut user_input = String::new();
         input.read_line(&mut user_input).expect("Failed to get input");
@@ -87,6 +89,9 @@ async fn main() {
                 process::exit(1);
             }
         }
+
+        // wait for ack, if no response in time resend
+        wait_ack(&socket);
     }
     
     // ----------------------------------------------------------------------------------------------
