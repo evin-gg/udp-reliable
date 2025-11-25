@@ -3,7 +3,9 @@ build:
 	cargo build
 
 client:
-	cargo run --bin client 192.168.1.96 50000 2 3
+	cargo build --bin client
+	./target/debug/client --target-ip 192.168.1.96 --target-port 50000 --timeout 1 --max-retries 5
 	
 server:
-	cargo run --bin server 192.168.1.96 50000
+	cargo build --bin server
+	./target/debug/server --target-ip 192.168.1.96 --target-port 50000

@@ -1,40 +1,30 @@
-mod networking_util;
-
 #[allow(unused_imports)]
 
+mod util;
+mod data_types;
 
-use networking_util::{
-    check_valid_ip, client_response_handler, client_arg_validation, client_connect, send_message
-};
-
-use std::{io::{BufRead, BufReader}, net::UdpSocket};
-use::std::{process, env};
+// keyboard listening and udp sockets
+use std::{io::{BufRead, BufReader, Write}, net::UdpSocket};
 use std::fs::File;
 
-// data structure for sending over
-use networking_util::Message;
+// process exit
+use::std::{process};
 
-use crate::networking_util::wait_ack;
+// data types
+use data_types::{ClientArgs, Message};
+
+// functions and utility
+use crate::util::client_util::*;
+use crate::util::networking_util::check_valid_ip;
 
 #[tokio::main]
 async fn main() {
 
     let mut seq_number: u8 = 0;
-
-    // get user args
-    let args: Vec<String> = env::args().collect();
-
-    // verify args
-    match client_arg_validation(&args) {
-        Ok(()) => {},
-        Err(e) => {
-            println!("{}", e);
-            process::exit(1);
-        }
-    } 
+    let args: ClientArgs = argh::from_env();
 
     //verify ip
-    match check_valid_ip(&args[1]) {
+    match check_valid_ip(&args.target_ip) {
         Ok(()) => {},
         Err(e) => {
             println!("Ip address error: {}", e);
@@ -52,14 +42,20 @@ async fn main() {
     };
 
     let std_socket: UdpSocket = socket.into();
-
+    std::process::Command::new("clear").status().unwrap();
     loop {
         // listen for keyboard inputs
         let mut input = BufReader::new(File::open("/dev/tty").unwrap());
-        println!("Enter Message");
+        print!("[CLIENT] Enter Message\n>>");
+        std::io::stdout().flush().unwrap();
 
         let mut user_input = String::new();
         input.read_line(&mut user_input).expect("Failed to get input");
+
+        if user_input == "\n" {
+            std::process::Command::new("clear").status().unwrap();
+            continue;
+        }
 
         // create the message
         let data: Message = Message {
@@ -67,9 +63,10 @@ async fn main() {
             message: user_input,
         };
 
-        
-
-        println!("[CLIENT] Message and seq number: {} {}", data.message.trim_end(), data.seq_number);
+        std::process::Command::new("clear").status().unwrap();
+        println!("[CLIENT]");
+        println!("Message: {}", data.message.trim_end());
+        println!("Sequence: {}\n", data.seq_number);
 
         // send the message 
         match send_message(&std_socket, &data) {
@@ -81,13 +78,13 @@ async fn main() {
         }
 
         // wait for ack, if no response in time resend
-        match wait_ack(&std_socket, &data, args[3].parse().unwrap(), args[4].parse().unwrap()) {
+        match wait_ack(&std_socket, &data, args.timeout, args.max_retries.into()) {
             Ok(()) => {},
             Err(e) => {
                 println!("{}", e);
             }
         };
-
+        
         seq_number += 1;
         
     }

@@ -1,13 +1,9 @@
-mod cipher;
-mod networking_util;
+mod util;
+mod data_types;
 
-use std::io::Bytes;
-// standard
-// use ::std::os::fd::AsRawFd;
-// use std::result;
-use ::std::{env, process};
-// use bincode::config;
+// signal handling
 use ctrlc;
+use std::process;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
@@ -17,13 +13,11 @@ use socket2::Socket;
 
 // poll
 use tokio::net::{ UdpSocket };
-// use tokio::io::{AsyncReadExt};
 
-// other util
-use networking_util::{send_ack, check_valid_ip, server_arg_validation, setup_server};
-
-use crate::networking_util::Message;
-use crate::networking_util::deserialize_message;
+// functions and utility
+use data_types::{ServerArgs};
+use crate::util::server_util::*;
+use crate::util::networking_util::check_valid_ip;
 
 fn handle_signal(flag: &Arc<AtomicBool>) {
     println!("Signal received");
@@ -38,19 +32,10 @@ async fn main() {
     ctrlc::set_handler(move || handle_signal(&c)).expect("[SERVER] Signal Handler Error");
 
     // args
-    let args: Vec<String> = env::args().collect();
-
-    // verify args
-    match server_arg_validation(&args) {
-        Ok(()) => {}
-        Err(e) => {
-            println!("{}", e);
-            process::exit(1);
-        }
-    }
+    let args: ServerArgs = argh::from_env();
 
     //verify ip
-    match check_valid_ip(&args[1]) {
+    match check_valid_ip(&args.target_ip) {
         Ok(()) => {}
         Err(e) => {
             println!("Ip address error: {}", e);
@@ -85,7 +70,7 @@ async fn main() {
         }
     };
 
-
+    std::process::Command::new("clear").status().unwrap();
     while catch.load(Ordering::SeqCst) {
         let mut buf = [0u8; 1024];
 
@@ -95,6 +80,7 @@ async fn main() {
         let result = packet.await;
         match result {
             Ok((n, addr)) => {
+                std::process::Command::new("clear").status().unwrap();
                 println!("[SERVER] Received {} bytes from {}", n, addr);
                 
                 let (data, _data_size) = match deserialize_message(&buf[0..n]) {
@@ -105,13 +91,13 @@ async fn main() {
                     }
                 };
 
-                println!("{}, SEQ: {}", data.message.trim_end(), data.seq_number);
+                println!("Message: {}", data.message.trim_end());
+                println!("Sequence #: {}\n", data.seq_number);
 
                 // send back ack
                 let ack_buf = [data.seq_number];
-                let bytes = tokio_listener.send_to(&ack_buf, addr).await;
-
-                println!("Sent {} bytes", bytes.unwrap())
+                let _bytes = tokio_listener.send_to(&ack_buf, addr).await;
+                println!("[SERVER] Sent ACK")
             }
             Err(e) => {
                 eprintln!("[SERVER] recv_from failed: {}", e);
