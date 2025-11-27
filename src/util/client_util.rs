@@ -75,6 +75,16 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
     let mut buf = [0u8];
 
     std::thread::sleep(Duration::from_secs(1));
+
+    if retries == 0 {
+        match std_socket.recv(&mut buf) {
+            Ok(_len) => {
+                println!("[CLIENT] Received ACK/Sequence Number = {}", buf[0]);
+                return Ok(())
+            }
+            Err(_e) => {}
+        }   
+    }
     for n in 0..retries {
         match std_socket.recv(&mut buf) {
             Ok(_len) => {
@@ -107,5 +117,4 @@ pub fn client_response_handler(socket: &Socket) {
 
     println!("Message from server: {}", String::from_utf8_lossy(&buffer));
 }
-
 // --- END ---
