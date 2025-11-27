@@ -11,6 +11,10 @@ path = "src/client.rs"
 name = "server"
 path = "src/server.rs"
 
+[[bin]]
+name = "proxy"
+path = "src/proxy.rs"
+
 [dependencies]
 argh = "0.1.13"
 bincode = "2.0.1"

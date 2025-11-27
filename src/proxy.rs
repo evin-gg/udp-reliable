@@ -3,8 +3,8 @@ mod util;
 
 // signal handling
 use ctrlc;
-use tokio::net::unix::SocketAddr;
 use tokio::net::UdpSocket;
+use std::fs::File;
 use std::process;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -16,11 +16,15 @@ use data_types::{ProxyArgs};
 // functions and utility
 use crate::util::proxy_util::*;
 use crate::util::networking_util::{check_valid_ip};
+use rand::Rng;
+use std::time::Duration;
+use std::io::Write;
 
 fn handle_signal(flag: &Arc<AtomicBool>) {
     println!("Signal received");
     flag.store(false, Ordering::SeqCst);
 }
+// sent ack retries lost
 
 #[tokio::main]
 async fn main() {
@@ -32,6 +36,14 @@ async fn main() {
 
     let mut client_incoming = [0u8; 1024];
     let mut server_incoming = [0u8; 1024];
+
+    let mut file = match File::create("log.txt") {
+        Ok(f) => f,
+        Err(e) => {
+            println!("[PROXY] Could not create log file: {}", e);
+            process::exit(1);
+        }
+    };
 
     match check_valid_ip(&args.target_ip) {
         Ok(()) => {},
@@ -58,17 +70,42 @@ async fn main() {
     };
 
     
-
+    println!("[PROXY] Proxy server running");
     let mut client_addr: Option<std::net::SocketAddr> = None;
 
     loop {
         tokio::select! {
             event1 = listening_socket.recv_from(&mut client_incoming) => {
+
+                _ = writeln!(file, "[SENT]");
+
                 let (n, addr) = event1.unwrap();
                 println!("[PROXY] I received {} bytes from client at {}", n, addr);
 
-                let sent = server_socket.send(&client_incoming[0..n]).await;
-                println!("[PROXY] I forwarded {} bytes to the server", sent.unwrap());
+                // apply delay chance or drop chance
+                let mut rng = rand::rng();
+                let mut drop_roll: u32 = rng.random_range(..100);
+                drop_roll += 1;
+                println!("Rolled {} against {}", drop_roll, args.client_drop);
+
+                if drop_roll >= args.client_drop {
+
+                    // std::thread::sleep(Duration::from_milliseconds(args.));
+                    let mut rng = rand::rng();
+                    let mut delay_roll: u32 = rng.random_range(..100);
+                    delay_roll += 1;
+
+                    if delay_roll >= args.client_delay {
+                        let mut rng = rand::rng();
+                        let delay_length = rng.random_range(args.client_delay_time_min..=args.client_delay_time_max);
+                        std::thread::sleep(Duration::from_millis(delay_length.into()));
+                        
+                    }
+                    
+                    println!("Rolled {} against {}", delay_roll, args.client_drop);
+                    let sent = server_socket.send(&client_incoming[0..n]).await;
+                    println!("[PROXY] I forwarded {} bytes to the server", sent.unwrap());
+                };
 
                 client_addr = Some(addr);
             }
@@ -77,26 +114,33 @@ async fn main() {
                 let n = event2.unwrap();
                 println!("[PROXY] I received {} bytes from the server", n);
 
-                // let client_socket = match UdpSocket::bind(client_addr).await {
-                //     Ok(s) => s,
-                //     Err(e) => {
-                //         println!("[PROXY] Could not open socket to client: {}", e);
-                //         process::exit(1);
-                //     }
-                // };
+                
+
+                // apply delay chance or drop chance
+                let mut rng = rand::rng();
+                let mut drop_roll: u32 = rng.random_range(..100);
+                drop_roll += 1;
+                println!("Rolled {} against {}", drop_roll, args.server_drop);
+
+                if drop_roll >= args.server_drop {
+
+                    let mut rng = rand::rng();
+                    let mut delay_roll: u32 = rng.random_range(..100);
+                    delay_roll += 1;
+
+                    if delay_roll >= args.server_delay {
+                        let mut rng = rand::rng();
+                        let delay_length = rng.random_range(args.server_delay_time_min..=args.server_delay_time_max);
+                        std::thread::sleep(Duration::from_millis(delay_length.into()));
+                    }
+                    
+                    println!("Rolled {} against {}", delay_roll, args.server_drop);
+                    let sent = listening_socket.send_to(&server_incoming[0..n], client_addr.unwrap()).await.unwrap(); 
+                    println!("[PROXY] I forwarded {} bytes to the client at {}", sent, client_addr.unwrap());
+                    _ = writeln!(file, "[ACK]");
+                };
 
                 
-                
-                let sent = listening_socket.send_to(&server_incoming[0..n], client_addr.unwrap()).await.unwrap(); 
-                // let sent = match listening_socket.send_to(&server_incoming[0..n], client_addr).await {
-                //     Ok(n) => n,
-                //     Err(e) => {
-                //         println!("[PROXY] Could not forward to client: {}", e);
-                //         process::exit(1);
-                //     }
-                // };
-
-                println!("[PROXY] I forwarded {} bytes to the client at {}", sent, client_addr.unwrap());
             }
         }
     }
