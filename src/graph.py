@@ -15,15 +15,19 @@ def update_data():
     sent = 0
     acks = 0
 
-    with open("../log.txt", "r") as file:
+    with open("log.txt", "r") as file:
         for line in file:
             line = line.strip()
-            print("Line read:\'"+line+"\'")
             if line == "[ACK]":
                 acks += 1
 
             if line == "[SENT]":
                 sent += 1
+
+        os.system('clear')
+        print("[LOGGER] CURRENT STATISTICS")
+        print("\nSENT: ", sent)
+        print("ACKS: ", acks)
         file.close()
 
 # polling thread
@@ -35,25 +39,27 @@ def detect_file_changes(file_path):
             print("File has changed!")
             last_modified = current_modified
             update_data()
-            print("Sent: "+str(sent))
-            print("Acks: "+str(acks))
-            
-
-
         time.sleep(1)
 
     
 
 if __name__ == "__main__":
+    os.system('clear')
 
-    filechanges = threading.Thread(target=detect_file_changes, args=("../log.txt",))
+    filechanges = threading.Thread(target=detect_file_changes, args=("log.txt",))
     filechanges.start()
     
     plt.ion()
     fig, ax = plt.subplots()
-
+    
     x = ["Sent", "Ack"]
-    bars = ax.bar(x, [sent, acks])
+    bars = ax.bar(x, [sent, acks], color=["skyblue", "mediumspringgreen"], width=0.4)
+
+    plt.title("Packet Statistics")
+
+    bars[0].set_label("Sent")
+    bars[1].set_label("Ack")
+    ax.legend()
     while True:
         bars[0].set_height(sent)
         bars[1].set_height(acks)

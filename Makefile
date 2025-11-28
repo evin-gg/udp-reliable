@@ -32,3 +32,6 @@ proxy:
 		--client-delay-time-max 0 \
 		--server-delay-time-min 0 \
 		--server-delay-time-max 0 \
+
+logger:
+	python ./src/graph.py
