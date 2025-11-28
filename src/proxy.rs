@@ -69,7 +69,7 @@ async fn main() {
         }
     };
 
-    
+    // std::process::Command::new("clear").status().unwrap();
     println!("[PROXY] Proxy server running");
     let mut client_addr: Option<std::net::SocketAddr> = None;
 
@@ -80,32 +80,38 @@ async fn main() {
                 _ = writeln!(file, "[SENT]");
 
                 let (n, addr) = event1.unwrap();
-                println!("[PROXY] I received {} bytes from client at {}", n, addr);
+                println!("\n[PROXY] I received {} bytes from client at {}", n, addr);
 
                 // apply delay chance or drop chance
                 let mut rng = rand::rng();
                 let mut drop_roll: u32 = rng.random_range(..100);
                 drop_roll += 1;
-                println!("Rolled {} against {}", drop_roll, args.client_drop);
+                println!("CLIENT DROP Rolled {} >= {}", drop_roll, args.client_drop);
 
                 if drop_roll >= args.client_drop {
-
-                    // std::thread::sleep(Duration::from_milliseconds(args.));
+                    println!("[PROXY] Client packet stays");
                     let mut rng = rand::rng();
                     let mut delay_roll: u32 = rng.random_range(..100);
                     delay_roll += 1;
+                    println!("CLIENT DELAY Rolled {} >= {}", delay_roll, args.client_delay);
 
-                    if delay_roll >= args.client_delay {
+                    if delay_roll <= args.client_delay {
+                        
                         let mut rng = rand::rng();
                         let delay_length = rng.random_range(args.client_delay_time_min..=args.client_delay_time_max);
+                        println!("[PROXY] Client packet delayed by {} ms", delay_length);
                         std::thread::sleep(Duration::from_millis(delay_length.into()));
                         
+                    } else {
+                        println!("[PROXY] Client packet not delayed");
                     }
                     
-                    println!("Rolled {} against {}", delay_roll, args.client_drop);
+                    
                     let sent = server_socket.send(&client_incoming[0..n]).await;
                     println!("[PROXY] I forwarded {} bytes to the server", sent.unwrap());
-                };
+                } else {
+                    println!("[PROXY] Client packet dropped");
+                }
 
                 client_addr = Some(addr);
             }
@@ -120,25 +126,30 @@ async fn main() {
                 let mut rng = rand::rng();
                 let mut drop_roll: u32 = rng.random_range(..100);
                 drop_roll += 1;
-                println!("Rolled {} against {}", drop_roll, args.server_drop);
-
+                println!("SERVER DROP Rolled {} >= {}", drop_roll, args.server_drop);
                 if drop_roll >= args.server_drop {
-
+                    println!("[PROXY] Server packet stays");
                     let mut rng = rand::rng();
                     let mut delay_roll: u32 = rng.random_range(..100);
                     delay_roll += 1;
+                    println!("SERVER DELAY Rolled {} >= {}", delay_roll, args.server_delay);
 
-                    if delay_roll >= args.server_delay {
+                    if delay_roll <= args.server_delay {
                         let mut rng = rand::rng();
                         let delay_length = rng.random_range(args.server_delay_time_min..=args.server_delay_time_max);
+                        println!("[PROXY] Server packet delayed by {} ms", delay_length);
                         std::thread::sleep(Duration::from_millis(delay_length.into()));
+                    } else {
+                        println!("[PROXY] Server packet not delayed");
                     }
                     
-                    println!("Rolled {} against {}", delay_roll, args.server_drop);
+                    
                     let sent = listening_socket.send_to(&server_incoming[0..n], client_addr.unwrap()).await.unwrap(); 
                     println!("[PROXY] I forwarded {} bytes to the client at {}", sent, client_addr.unwrap());
                     _ = writeln!(file, "[ACK]");
-                };
+                } else {
+                    println!("[PROXY] Client packet dropped");
+                }
 
                 
             }

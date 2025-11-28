@@ -18,11 +18,15 @@ nserver:
 
 client:
 	cargo build --bin client
-	./target/debug/client --target-ip $(proxyIP) --target-port $(proxyPORT) --timeout 1 --max-retries 0
+	./target/debug/client --target-ip $(proxyIP) --target-port $(proxyPORT) --timeout 1 --max-retries 3
 	
 server:
 	cargo build --bin server
 	./target/debug/server --target-ip $(serverIP) --target-port $(serverPORT)
+
+
+logger:
+	python ./src/graph.py
 
 proxy:
 	cargo build --bin proxy
@@ -39,5 +43,77 @@ proxy:
 		--server-delay-time-min 0 \
 		--server-delay-time-max 0 \
 
-logger:
-	python ./src/graph.py
+proxy2:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 0 \
+		--server-drop 50 \
+		--client-delay 0 \
+		--server-delay 0 \
+		--client-delay-time-min 0 \
+		--client-delay-time-max 0 \
+		--server-delay-time-min 0 \
+		--server-delay-time-max 0 \
+
+proxy3:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 0 \
+		--server-drop 100 \
+		--client-delay 0 \
+		--server-delay 0 \
+		--client-delay-time-min 0 \
+		--client-delay-time-max 0 \
+		--server-delay-time-min 0 \
+		--server-delay-time-max 0 \
+
+proxy4:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 0 \
+		--server-drop 0 \
+		--client-delay 50 \
+		--server-delay 0 \
+		--client-delay-time-min 100 \
+		--client-delay-time-max 500 \
+		--server-delay-time-min 0 \
+		--server-delay-time-max 0 \
+
+proxy5:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 0 \
+		--server-drop 0 \
+		--client-delay 100 \
+		--server-delay 0 \
+		--client-delay-time-min 4000 \
+		--client-delay-time-max 5000 \
+		--server-delay-time-min 0 \
+		--server-delay-time-max 0 \
+
+proxy6:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 50 \
+		--server-drop 0 \
+		--client-delay 50 \
+		--server-delay 0 \
+		--client-delay-time-min 4000 \
+		--client-delay-time-max 5000 \
+		--server-delay-time-min 0 \
+		--server-delay-time-max 0 \

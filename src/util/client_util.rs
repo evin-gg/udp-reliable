@@ -4,6 +4,7 @@
 use std::os::fd::AsRawFd;
 use std::net::{IpAddr, SocketAddrV4, SocketAddrV6, UdpSocket};
 
+use std::process;
 // time
 use std::time::Duration;
 
@@ -88,6 +89,11 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
     for n in 0..retries {
         match std_socket.recv(&mut buf) {
             Ok(_len) => {
+
+                if buf[0] < data.seq_number{
+                    return Err(("[CLIENT] Out of order ACK packet.").into());
+                }
+                    
                 println!("[CLIENT] Received ACK/Sequence Number = {}", buf[0]);
                 return Ok(())
             }
@@ -100,7 +106,7 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
         std::thread::sleep(Duration::from_secs(timeout));
     }
 
-    return Err(("[CLIENT] Did not receive ACK. Continuing Program").into());
+    return Err(("[CLIENT] Did not receive ACK. Exiting program.").into());
     
 }
 
