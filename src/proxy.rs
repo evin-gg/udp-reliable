@@ -73,14 +73,15 @@ async fn main() {
     println!("[PROXY] Proxy server running");
     let mut client_addr: Option<std::net::SocketAddr> = None;
 
-    loop {
+    while catch.load(Ordering::SeqCst) {
         tokio::select! {
             event1 = listening_socket.recv_from(&mut client_incoming) => {
 
                 _ = writeln!(file, "[SENT]");
 
                 let (n, addr) = event1.unwrap();
-                println!("\n[PROXY] I received {} bytes from client at {}", n, addr);
+                println!("\n----------------PACKET----------------");
+                println!("[PROXY] I received {} bytes from client at {}", n, addr);
 
                 // apply delay chance or drop chance
                 let mut rng = rand::rng();
@@ -88,14 +89,14 @@ async fn main() {
                 drop_roll += 1;
                 println!("CLIENT DROP Rolled {} >= {}", drop_roll, args.client_drop);
 
-                if drop_roll >= args.client_drop {
+                if drop_roll > args.client_drop {
                     println!("[PROXY] Client packet stays");
                     let mut rng = rand::rng();
                     let mut delay_roll: u32 = rng.random_range(..100);
                     delay_roll += 1;
                     println!("CLIENT DELAY Rolled {} >= {}", delay_roll, args.client_delay);
 
-                    if delay_roll <= args.client_delay {
+                    if delay_roll < args.client_delay {
                         
                         let mut rng = rand::rng();
                         let delay_length = rng.random_range(args.client_delay_time_min..=args.client_delay_time_max);
@@ -127,14 +128,14 @@ async fn main() {
                 let mut drop_roll: u32 = rng.random_range(..100);
                 drop_roll += 1;
                 println!("SERVER DROP Rolled {} >= {}", drop_roll, args.server_drop);
-                if drop_roll >= args.server_drop {
+                if drop_roll > args.server_drop {
                     println!("[PROXY] Server packet stays");
                     let mut rng = rand::rng();
                     let mut delay_roll: u32 = rng.random_range(..100);
                     delay_roll += 1;
                     println!("SERVER DELAY Rolled {} >= {}", delay_roll, args.server_delay);
 
-                    if delay_roll <= args.server_delay {
+                    if delay_roll < args.server_delay {
                         let mut rng = rand::rng();
                         let delay_length = rng.random_range(args.server_delay_time_min..=args.server_delay_time_max);
                         println!("[PROXY] Server packet delayed by {} ms", delay_length);
@@ -156,4 +157,4 @@ async fn main() {
         }
     }
 
-    }
+}

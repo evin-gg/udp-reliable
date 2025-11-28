@@ -89,6 +89,12 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
     for n in 0..retries {
         match std_socket.recv(&mut buf) {
             Ok(_len) => {
+                if buf[0] != data.seq_number {
+                    println!("[CLIENT] Out of order packet. Retrying..({})", n);
+                    _ = send_message(serverfd, data);
+                    std::thread::sleep(Duration::from_secs(timeout));
+                    continue;
+                }
                     
                 println!("[CLIENT] Received ACK/Sequence Number = {}", buf[0]);
                 return Ok(())
