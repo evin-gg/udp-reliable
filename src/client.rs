@@ -79,11 +79,13 @@ async fn main() {
 
         // wait for ack, if no response in time resend
         match wait_ack(&std_socket, &data, args.timeout, args.max_retries.into()) {
-            Ok(()) => {seq_number += 1;},
+            Ok(()) => {},
             Err(e) => {
                 println!("{}", e);
-                // process::exit(1);
+                process::exit(1);
             }
         };
+
+        seq_number += 1;
     }
 }
