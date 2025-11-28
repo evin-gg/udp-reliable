@@ -1,3 +1,9 @@
+proxyIP = 127.0.0.1
+proxyPORT = 40000
+
+serverIP = 192.168.1.96
+serverPORT = 40000
+
 build:
 	cargo clean
 	cargo build
@@ -12,18 +18,18 @@ nserver:
 
 client:
 	cargo build --bin client
-	./target/debug/client --target-ip 127.0.0.1 --target-port 40000 --timeout 1 --max-retries 0
+	./target/debug/client --target-ip $(proxyIP) --target-port $(proxyPORT) --timeout 1 --max-retries 0
 	
 server:
 	cargo build --bin server
-	./target/debug/server --target-ip 192.168.1.96 --target-port 50000
+	./target/debug/server --target-ip $(serverIP) --target-port $(serverPORT)
 
 proxy:
 	cargo build --bin proxy
-	./target/debug/proxy --listen-ip 127.0.0.1 \
-		--listen-port 40000 \
-		--target-ip 192.168.1.96 \
-		--target-port 50000 \
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
 		--client-drop 0 \
 		--server-drop 0 \
 		--client-delay 0 \
