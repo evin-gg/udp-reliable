@@ -1,8 +1,13 @@
 #![allow(dead_code)]
 
+use std::result;
+
+use nix::errno::ErrnoSentinel;
 use tokio::net::UdpSocket;
 
-pub async fn socket_for_client(listen_ip: &String, listen_port: &String) -> Result<UdpSocket, String> {
+use crate::{data_types::ProxyArgs, util::networking_util::check_valid_ip};
+
+pub async fn listen_proxy(listen_ip: &String, listen_port: &String) -> Result<UdpSocket, String> {
 
     let addr = format!("{}:{}", listen_ip, listen_port);
     let sock = match UdpSocket::bind(addr).await {
@@ -15,7 +20,7 @@ pub async fn socket_for_client(listen_ip: &String, listen_port: &String) -> Resu
     return Ok(sock);
 }
 
-pub async fn connect_to_server(target_ip: &String, target_port: &String) -> Result<UdpSocket, String> {
+pub async fn connect_proxy(target_ip: &String, target_port: &String) -> Result<UdpSocket, String> {
 
     let addr = format!("{}:{}", target_ip, target_port);
     let socket = match  UdpSocket::bind("0.0.0.0:0").await {
@@ -32,4 +37,24 @@ pub async fn connect_to_server(target_ip: &String, target_port: &String) -> Resu
     };
 
     return Ok(socket)
+}
+
+pub fn validate_proxy_args(args: &ProxyArgs) -> Result<(), String> {
+    match check_valid_ip(&args.listen_ip) {
+        Ok(()) => {},
+        Err(e) => {
+            println!();
+            return Err(format!("[PROXY] Ip address error: {}", e).into());
+        }
+    }
+
+    match check_valid_ip(&args.target_ip) {
+        Ok(()) => {},
+        Err(e) => {
+            println!();
+            return Err(format!("[PROXY] Ip address error: {}", e).into());
+        }
+    }
+
+    Ok(())
 }

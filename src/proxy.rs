@@ -14,7 +14,6 @@ use data_types::{ProxyArgs};
 
 // functions and utility
 use crate::util::proxy_util::*;
-use crate::util::networking_util::{check_valid_ip};
 use rand::Rng;
 use std::time::Duration;
 use std::io::Write;
@@ -44,15 +43,15 @@ async fn main() {
         }
     };
 
-    match check_valid_ip(&args.target_ip) {
+    match validate_proxy_args(&args) {
         Ok(()) => {},
         Err(e) => {
-            println!("[PROXY] Ip address error: {}", e);
+            println!("{}", e);
             process::exit(1);
         }
     }
 
-    let listening_socket: UdpSocket = match socket_for_client(&args.listen_ip, &args.listen_port).await {
+    let listening_socket: UdpSocket = match listen_proxy(&args.listen_ip, &args.listen_port).await {
         Ok(fd) => fd,
         Err(e) => {
             println!("{}", e);
@@ -60,7 +59,7 @@ async fn main() {
         }
     };
 
-    let server_socket: UdpSocket = match connect_to_server(&args.target_ip, &args.target_port).await {
+    let server_socket: UdpSocket = match connect_proxy(&args.target_ip, &args.target_port).await {
         Ok(s) => s,
         Err(e) => {
             println!("{}", e);

@@ -18,7 +18,7 @@ nserver:
 
 client:
 	cargo build --bin client
-	./target/debug/client --target-ip $(proxyIP) --target-port $(proxyPORT) --timeout 2 --max-retries 5
+	./target/debug/client --target-ip $(proxyIP) --target-port $(proxyPORT) --timeout 2 --max-retries 10
 	
 server:
 	cargo build --bin server
@@ -94,8 +94,8 @@ proxy5:
 		--server-drop 0 \
 		--client-delay 100 \
 		--server-delay 0 \
-		--client-delay-time-min 4000 \
-		--client-delay-time-max 5000 \
+		--client-delay-time-min 2500 \
+		--client-delay-time-max 3000 \
 		--server-delay-time-min 0 \
 		--server-delay-time-max 0 \
 
@@ -109,7 +109,7 @@ proxy6:
 		--server-drop 0 \
 		--client-delay 50 \
 		--server-delay 0 \
-		--client-delay-time-min 4000 \
-		--client-delay-time-max 5000 \
+		--client-delay-time-min 2500 \
+		--client-delay-time-max 3000 \
 		--server-delay-time-min 0 \
 		--server-delay-time-max 0 \
