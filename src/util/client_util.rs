@@ -4,7 +4,6 @@
 use std::os::fd::AsRawFd;
 use std::net::{IpAddr, SocketAddrV4, SocketAddrV6, UdpSocket};
 
-use std::process;
 // time
 use std::time::Duration;
 
@@ -75,7 +74,7 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
 
     let mut buf = [0u8];
 
-    std::thread::sleep(Duration::from_secs(1));
+    std::thread::sleep(Duration::from_millis(200));
 
     if retries == 0 {
         match std_socket.recv(&mut buf) {

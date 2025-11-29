@@ -32,6 +32,15 @@ async fn main() {
         }
     }
 
+    // log
+    let mut file = match File::create("./loggers/logs/client.log") {
+        Ok(f) => f,
+        Err(e) => {
+            println!("[CLIENT] Could not create log file: {}", e);
+            process::exit(1);
+        }
+    };
+
     // connect to server
     let socket = match client_connect(&args) {
         Ok(s) => s,
@@ -76,10 +85,11 @@ async fn main() {
                 process::exit(1);
             }
         }
+        _ = writeln!(file, "[SENT]");
 
         // wait for ack, if no response in time resend
         match wait_ack(&std_socket, &data, args.timeout, args.max_retries.into()) {
-            Ok(()) => {},
+            Ok(()) => {_ = writeln!(file, "[ACK]")},
             Err(e) => {
                 println!("{}", e);
                 process::exit(1);

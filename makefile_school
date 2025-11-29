@@ -1,7 +1,7 @@
-proxyIP = 127.0.0.1
+proxyIP = 192.168.0.112
 proxyPORT = 40000
 
-serverIP = 192.168.1.96
+serverIP = 192.168.0.25
 serverPORT = 40000
 
 build:
@@ -25,8 +25,9 @@ server:
 	./target/debug/server --target-ip $(serverIP) --target-port $(serverPORT)
 
 
-logger:
-	python ./src/graph.py
+proxylogger:
+	source ./loggers/bin/activate
+
 
 proxy:
 	cargo build --bin proxy
@@ -98,8 +99,8 @@ proxy5:
 		--server-drop 0 \
 		--client-delay 100 \
 		--server-delay 0 \
-		--client-delay-time-min 4000 \
-		--client-delay-time-max 5000 \
+		--client-delay-time-min 2000 \
+		--client-delay-time-max 2500 \
 		--server-delay-time-min 0 \
 		--server-delay-time-max 0 \
 

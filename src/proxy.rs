@@ -4,7 +4,6 @@ mod util;
 // signal handling
 use ctrlc;
 use tokio::net::UdpSocket;
-use std::fs::File;
 use std::process;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -19,12 +18,12 @@ use crate::util::networking_util::{check_valid_ip};
 use rand::Rng;
 use std::time::Duration;
 use std::io::Write;
+use std::fs::File;
 
 fn handle_signal(flag: &Arc<AtomicBool>) {
     println!("Signal received");
     flag.store(false, Ordering::SeqCst);
 }
-// sent ack retries lost
 
 #[tokio::main]
 async fn main() {
@@ -37,7 +36,7 @@ async fn main() {
     let mut client_incoming = [0u8; 1024];
     let mut server_incoming = [0u8; 1024];
 
-    let mut file = match File::create("log.txt") {
+    let mut file = match File::create("./loggers/logs/proxy.log") {
         Ok(f) => f,
         Err(e) => {
             println!("[PROXY] Could not create log file: {}", e);
@@ -69,7 +68,13 @@ async fn main() {
         }
     };
 
-    // std::process::Command::new("clear").status().unwrap();
+    std::process::Command::new("clear").status().unwrap();
+    println!("Client Drop Chance: %{}", args.client_drop);
+    println!("Server Drop Chance: %{}", args.server_drop);
+    println!("Client Delay Chance: %{}", args.client_delay);
+    println!("Server Delay Chance: %{}", args.server_delay);
+    println!("Client Delay Time Range:{}ms - {}ms", args.client_delay_time_min, args.client_delay_time_max);
+    println!("Server Delay Time Range:{}ms - {}ms", args.server_delay_time_min, args.server_delay_time_max);
     println!("[PROXY] Proxy server running");
     let mut client_addr: Option<std::net::SocketAddr> = None;
 
@@ -80,21 +85,19 @@ async fn main() {
                 _ = writeln!(file, "[SENT]");
 
                 let (n, addr) = event1.unwrap();
-                println!("\n----------------PACKET----------------");
-                println!("[PROXY] I received {} bytes from client at {}", n, addr);
+                println!("\n----------------MESSAGE----------------");
+                println!("[PROXY] {} bytes CLIENT -> PROXY", n);
 
                 // apply delay chance or drop chance
                 let mut rng = rand::rng();
                 let mut drop_roll: u32 = rng.random_range(..100);
                 drop_roll += 1;
-                println!("CLIENT DROP Rolled {} >= {}", drop_roll, args.client_drop);
 
                 if drop_roll > args.client_drop {
                     println!("[PROXY] Client packet stays");
                     let mut rng = rand::rng();
                     let mut delay_roll: u32 = rng.random_range(..100);
                     delay_roll += 1;
-                    println!("CLIENT DELAY Rolled {} >= {}", delay_roll, args.client_delay);
 
                     if delay_roll < args.client_delay {
                         
@@ -109,7 +112,7 @@ async fn main() {
                     
                     
                     let sent = server_socket.send(&client_incoming[0..n]).await;
-                    println!("[PROXY] I forwarded {} bytes to the server", sent.unwrap());
+                    println!("[PROXY] {} bytes PROXY -> SERVER", sent.unwrap());
                 } else {
                     println!("[PROXY] Client packet dropped");
                 }
@@ -119,7 +122,7 @@ async fn main() {
 
             event2 = server_socket.recv(&mut server_incoming) => {
                 let n = event2.unwrap();
-                println!("[PROXY] I received {} bytes from the server", n);
+                println!("[PROXY] {} bytes PROXY <- SERVER", n);
 
                 
 
@@ -127,13 +130,12 @@ async fn main() {
                 let mut rng = rand::rng();
                 let mut drop_roll: u32 = rng.random_range(..100);
                 drop_roll += 1;
-                println!("SERVER DROP Rolled {} >= {}", drop_roll, args.server_drop);
+
                 if drop_roll > args.server_drop {
                     println!("[PROXY] Server packet stays");
                     let mut rng = rand::rng();
                     let mut delay_roll: u32 = rng.random_range(..100);
                     delay_roll += 1;
-                    println!("SERVER DELAY Rolled {} >= {}", delay_roll, args.server_delay);
 
                     if delay_roll < args.server_delay {
                         let mut rng = rand::rng();
@@ -146,7 +148,7 @@ async fn main() {
                     
                     
                     let sent = listening_socket.send_to(&server_incoming[0..n], client_addr.unwrap()).await.unwrap(); 
-                    println!("[PROXY] I forwarded {} bytes to the client at {}", sent, client_addr.unwrap());
+                    println!("[PROXY] {} bytes CLIENT <- PROXY", sent);
                     _ = writeln!(file, "[ACK]");
                 } else {
                     println!("[PROXY] Client packet dropped");

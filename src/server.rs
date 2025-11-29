@@ -18,6 +18,8 @@ use tokio::net::{ UdpSocket };
 use data_types::{ServerArgs};
 use crate::util::server_util::*;
 use crate::util::networking_util::check_valid_ip;
+use std::io::Write;
+use std::fs::File;
 
 fn handle_signal(flag: &Arc<AtomicBool>) {
     println!("Signal received");
@@ -42,6 +44,15 @@ async fn main() {
             process::exit(1);
         }
     }
+
+    let mut file = match File::create("./loggers/logs/server.log") {
+        Ok(f) => f,
+        Err(e) => {
+            println!("[SERVER] Could not create log file: {}", e);
+            process::exit(1);
+        }
+    };
+
 
     // setup server
     let socket: Socket = match setup_server(&args) {
@@ -71,6 +82,7 @@ async fn main() {
     };
 
     std::process::Command::new("clear").status().unwrap();
+    println!("[SERVER] Running");
     while catch.load(Ordering::SeqCst) {
         let mut buf = [0u8; 1024];
 
@@ -82,6 +94,7 @@ async fn main() {
             Ok((n, addr)) => {
                 std::process::Command::new("clear").status().unwrap();
                 println!("[SERVER] Received {} bytes from {}", n, addr);
+                _ = writeln!(file, "[RECEIVED]");
                 
                 let (data, _data_size) = match deserialize_message(&buf[0..n]) {
                     Ok(d) => d,
@@ -97,7 +110,8 @@ async fn main() {
                 // send back ack
                 let ack_buf = [data.seq_number];
                 let _bytes = tokio_listener.send_to(&ack_buf, addr).await;
-                println!("[SERVER] Sent ACK")
+                println!("[SERVER] Sent ACK");
+                _ = writeln!(file, "[ACK]");
             }
             Err(e) => {
                 eprintln!("[SERVER] recv_from failed: {}", e);

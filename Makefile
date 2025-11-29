@@ -1,7 +1,7 @@
-proxyIP = 192.168.0.112
+proxyIP = 127.0.0.1
 proxyPORT = 40000
 
-serverIP = 192.168.0.25
+serverIP = 192.168.1.96
 serverPORT = 40000
 
 build:
@@ -18,15 +18,11 @@ nserver:
 
 client:
 	cargo build --bin client
-	./target/debug/client --target-ip $(proxyIP) --target-port $(proxyPORT) --timeout 1 --max-retries 3
+	./target/debug/client --target-ip $(proxyIP) --target-port $(proxyPORT) --timeout 2 --max-retries 5
 	
 server:
 	cargo build --bin server
 	./target/debug/server --target-ip $(serverIP) --target-port $(serverPORT)
-
-
-logger:
-	python ./src/graph.py
 
 proxy:
 	cargo build --bin proxy
@@ -98,8 +94,8 @@ proxy5:
 		--server-drop 0 \
 		--client-delay 100 \
 		--server-delay 0 \
-		--client-delay-time-min 2000 \
-		--client-delay-time-max 2500 \
+		--client-delay-time-min 4000 \
+		--client-delay-time-max 5000 \
 		--server-delay-time-min 0 \
 		--server-delay-time-max 0 \
 
