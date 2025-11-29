@@ -14,7 +14,7 @@ nclient:
 
 nserver:
 	cargo build --bin server
-	./target/debug/server --target-ip 192.168.1.96 --target-port 50000
+	./target/debug/server --listen-ip 192.168.1.96 --listen-port 50000
 
 client:
 	cargo build --bin client
@@ -22,7 +22,7 @@ client:
 	
 server:
 	cargo build --bin server
-	./target/debug/server --target-ip $(serverIP) --target-port $(serverPORT)
+	./target/debug/server --listen-ip $(serverIP) --listen-port $(serverPORT)
 
 
 proxy:

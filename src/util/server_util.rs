@@ -27,9 +27,9 @@ pub fn server_arg_validation(args: &Vec<String>) -> Result<(), String> {
 }
 
 pub fn setup_server(args: &ServerArgs) -> Result<Socket, String> {
-    let local_ip: IpAddr = args.target_ip.parse().unwrap();
+    let local_ip: IpAddr = args.listen_ip.parse().unwrap();
 
-    let port: u16 = args.target_port;
+    let port: u16 = args.listen_port;
     let (domain, addr) = match local_ip {
         IpAddr::V4(v4) => (Domain::IPV4, SockAddr::from(SocketAddrV4::new(v4, port))),
         IpAddr::V6(v6) => (Domain::IPV6, SockAddr::from(SocketAddrV6::new(v6, port, 0, 0))),

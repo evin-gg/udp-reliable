@@ -37,7 +37,7 @@ async fn main() {
     let args: ServerArgs = argh::from_env();
 
     //verify ip
-    match check_valid_ip(&args.target_ip) {
+    match check_valid_ip(&args.listen_ip) {
         Ok(()) => {}
         Err(e) => {
             println!("Ip address error: {}", e);

@@ -36,11 +36,11 @@ pub struct ServerArgs {
 
     /// ip address
     #[argh(option)]
-    pub target_ip: String,
+    pub listen_ip: String,
 
     /// port of server
     #[argh(option)]
-    pub target_port: u16
+    pub listen_port: u16
 }
 
 #[derive(FromArgs)]
