@@ -1,8 +1,5 @@
 #![allow(dead_code)]
 
-use std::result;
-
-use nix::errno::ErrnoSentinel;
 use tokio::net::UdpSocket;
 
 use crate::{data_types::ProxyArgs, util::networking_util::check_valid_ip};

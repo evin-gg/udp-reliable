@@ -12,8 +12,7 @@ use std::time::Duration;
 use nix::sys::socket::{
     MsgFlags, recv
 };
-// process exit
-use::std::{process};
+
 // network sockets
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
