@@ -3,21 +3,22 @@ mod util;
 
 // signal handling
 use ctrlc;
-use tokio::net::UdpSocket;
 use std::process;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
+use tokio::net::UdpSocket;
 
 // data types
-use data_types::{ProxyArgs};
+use data_types::ProxyArgs;
 
 // functions and utility
-use crate::util::proxy_util::*;
-use rand::Rng;
-use std::time::Duration;
-use std::io::Write;
+use crate::util::proxy_util::{
+    chance, connect_proxy, forward_packet_client, forward_packet_server, listen_proxy,
+    random_delay, validate_proxy_args,
+};
 use std::fs::File;
+use std::io::Write;
 
 fn handle_signal(flag: &Arc<AtomicBool>) {
     println!("Signal received");
@@ -44,7 +45,7 @@ async fn main() {
     };
 
     match validate_proxy_args(&args) {
-        Ok(()) => {},
+        Ok(()) => {}
         Err(e) => {
             println!("{}", e);
             process::exit(1);
@@ -72,8 +73,14 @@ async fn main() {
     println!("Server Drop Chance: %{}", args.server_drop);
     println!("Client Delay Chance: %{}", args.client_delay);
     println!("Server Delay Chance: %{}", args.server_delay);
-    println!("Client Delay Time Range:{}ms - {}ms", args.client_delay_time_min, args.client_delay_time_max);
-    println!("Server Delay Time Range:{}ms - {}ms", args.server_delay_time_min, args.server_delay_time_max);
+    println!(
+        "Client Delay Time Range:{}ms - {}ms",
+        args.client_delay_time_min, args.client_delay_time_max
+    );
+    println!(
+        "Server Delay Time Range:{}ms - {}ms",
+        args.server_delay_time_min, args.server_delay_time_max
+    );
     println!("[PROXY] Proxy server running");
     let mut client_addr: Option<std::net::SocketAddr> = None;
 
@@ -87,31 +94,16 @@ async fn main() {
                 println!("\n----------------MESSAGE----------------");
                 println!("[PROXY] {} bytes CLIENT -> PROXY", n);
 
-                // apply delay chance or drop chance
-                let mut rng = rand::rng();
-                let mut drop_roll: u32 = rng.random_range(..100);
-                drop_roll += 1;
-
-                if drop_roll > args.client_drop {
+                if chance(args.client_drop) {
                     println!("[PROXY] Client packet stays");
-                    let mut rng = rand::rng();
-                    let mut delay_roll: u32 = rng.random_range(..100);
-                    delay_roll += 1;
 
-                    if delay_roll < args.client_delay {
-                        
-                        let mut rng = rand::rng();
-                        let delay_length = rng.random_range(args.client_delay_time_min..=args.client_delay_time_max);
-                        println!("[PROXY] Client packet delayed by {} ms", delay_length);
-                        std::thread::sleep(Duration::from_millis(delay_length.into()));
-                        
+                    if chance(args.client_delay) {
+                        random_delay(args.client_delay_time_min, args.client_delay_time_max);
+
                     } else {
                         println!("[PROXY] Client packet not delayed");
                     }
-                    
-                    
-                    let sent = server_socket.send(&client_incoming[0..n]).await;
-                    println!("[PROXY] {} bytes PROXY -> SERVER", sent.unwrap());
+                    forward_packet_server(&server_socket, &client_incoming, n).await;
                 } else {
                     println!("[PROXY] Client packet dropped");
                 }
@@ -123,39 +115,28 @@ async fn main() {
                 let n = event2.unwrap();
                 println!("[PROXY] {} bytes PROXY <- SERVER", n);
 
-                
-
-                // apply delay chance or drop chance
-                let mut rng = rand::rng();
-                let mut drop_roll: u32 = rng.random_range(..100);
-                drop_roll += 1;
-
-                if drop_roll > args.server_drop {
+                if chance(args.server_drop) {
                     println!("[PROXY] Server packet stays");
-                    let mut rng = rand::rng();
-                    let mut delay_roll: u32 = rng.random_range(..100);
-                    delay_roll += 1;
 
-                    if delay_roll < args.server_delay {
-                        let mut rng = rand::rng();
-                        let delay_length = rng.random_range(args.server_delay_time_min..=args.server_delay_time_max);
-                        println!("[PROXY] Server packet delayed by {} ms", delay_length);
-                        std::thread::sleep(Duration::from_millis(delay_length.into()));
+                    if chance(args.server_delay) {
+                        random_delay(args.server_delay_time_min, args.server_delay_time_max);
                     } else {
                         println!("[PROXY] Server packet not delayed");
                     }
-                    
-                    
-                    let sent = listening_socket.send_to(&server_incoming[0..n], client_addr.unwrap()).await.unwrap(); 
-                    println!("[PROXY] {} bytes CLIENT <- PROXY", sent);
+
+                    forward_packet_client(
+                        &listening_socket,
+                        &client_addr,
+                        &server_incoming,
+                        n
+                    ).await;
                     _ = writeln!(file, "[ACK]");
                 } else {
                     println!("[PROXY] Client packet dropped");
                 }
 
-                
+
             }
         }
     }
-
 }

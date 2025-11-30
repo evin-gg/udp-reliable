@@ -4,14 +4,14 @@ mod util;
 mod data_types;
 
 // keyboard listening and udp sockets
-use std::{io::{BufRead, BufReader, Write}, net::UdpSocket};
+use std::{io::{Write}, net::UdpSocket};
 use std::fs::File;
 
 // process exit
 use::std::{process};
 
 // data types
-use data_types::{ClientArgs, Message};
+use data_types::{ClientArgs};
 
 // functions and utility
 use crate::util::client_util::*;
@@ -62,12 +62,7 @@ async fn main() {
     std::process::Command::new("clear").status().unwrap();
     loop {
         // listen for keyboard inputs
-        let mut input = BufReader::new(File::open("/dev/tty").unwrap());
-        print!("[CLIENT] Enter Message\n>>");
-        std::io::stdout().flush().unwrap();
-
-        let mut user_input = String::new();
-        input.read_line(&mut user_input).expect("Failed to get input");
+        let user_input = listen_keyboard();
 
         if user_input == "\n" {
             std::process::Command::new("clear").status().unwrap();
@@ -75,10 +70,7 @@ async fn main() {
         }
 
         // create the message
-        let data: Message = Message {
-            seq_number: seq_number,
-            message: user_input,
-        };
+        let data = create_message(seq_number, user_input);
 
         std::process::Command::new("clear").status().unwrap();
         println!("[CLIENT]");

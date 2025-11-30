@@ -86,7 +86,7 @@ async fn main() {
     while catch.load(Ordering::SeqCst) {
         let mut buf = [0u8; 1024];
 
-        // new accept
+        // receive
         let packet= tokio_listener.recv_from(&mut buf);
 
         let result = packet.await;
@@ -107,10 +107,8 @@ async fn main() {
                 println!("Message: {}", data.message.trim_end());
                 println!("Sequence #: {}\n", data.seq_number);
 
-                // send back ack
-                let ack_buf = [data.seq_number];
-                let _bytes = tokio_listener.send_to(&ack_buf, addr).await;
-                println!("[SERVER] Sent ACK");
+                send_ack(&tokio_listener, data.seq_number, addr).await;
+
                 _ = writeln!(file, "[ACK]");
             }
             Err(e) => {

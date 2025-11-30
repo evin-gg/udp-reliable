@@ -2,7 +2,7 @@
 // use std::io::Error;
 
 // standard sockets and addresses
-use std::net::{IpAddr, SocketAddr, SocketAddrV4, SocketAddrV6, UdpSocket};
+use std::net::{IpAddr, SocketAddrV4, SocketAddrV6};
 
 // network sockets
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
@@ -14,18 +14,6 @@ use bincode::{config};
 use crate::data_types::{Message, ServerArgs};
 
 // ---Server Setup functions---
-
-// correct amount of server args
-pub fn server_arg_validation(args: &Vec<String>) -> Result<(), String> {
-    if args.len() != 3 {
-        return Err("Usage: <listen-ip> <listen-port>".into());
-    }
-
-    else {
-        Ok(()) 
-    }
-}
-
 pub fn setup_server(args: &ServerArgs) -> Result<Socket, String> {
     let local_ip: IpAddr = args.listen_ip.parse().unwrap();
 
@@ -68,12 +56,11 @@ pub fn deserialize_message(buffer: &[u8]) -> Result<(Message, usize), String> {
     return Ok(data);
 }
 
-pub fn send_ack(server_socket: &UdpSocket, client_addr: &SocketAddr, seq_number: u8) -> Result<(), String> {
-    let buf = [seq_number];
+pub async fn send_ack(sock: &tokio::net::UdpSocket, seq: u8, addr: std::net::SocketAddr) {
+    let ack_buf = [seq];
 
-    match server_socket.send_to(&buf, client_addr) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(format!("[SERVER] Failed to send ACK: {}", e)),
-    }
+    let _bytes = sock.send_to(&ack_buf, addr).await;
+    println!("[SERVER] Sent ACK");
 }
+
 // --- END ---

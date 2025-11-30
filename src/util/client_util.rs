@@ -1,17 +1,11 @@
 #![allow(dead_code)]
 
 // standard network sockets and addresses
-use std::os::fd::AsRawFd;
 use std::net::{IpAddr, SocketAddrV4, SocketAddrV6, UdpSocket};
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 // time
 use std::time::Duration;
-
-// some nix flags
-use nix::sys::socket::{
-    MsgFlags, recv
-};
 
 // network sockets
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
@@ -67,8 +61,13 @@ pub fn send_message(serverfd: &UdpSocket, data: &Message) -> Result<(), String> 
     Ok(())
 }
 
-pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32, mut file: &File) -> Result<(), String> {
-
+pub fn wait_ack(
+    serverfd: &UdpSocket,
+    data: &Message,
+    timeout: u64,
+    retries: i32,
+    mut file: &File,
+) -> Result<(), String> {
     let cloned_fd = serverfd.try_clone().unwrap();
     let std_socket: UdpSocket = cloned_fd.into();
 
@@ -78,6 +77,7 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
 
     std::thread::sleep(Duration::from_millis(200));
 
+    // Special case when retries == 0
     if retries == 0 {
         match std_socket.recv(&mut buf) {
             Ok(_len) => {
@@ -85,8 +85,22 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
                 return Ok(())
             }
             Err(_e) => {}
-        }   
+        }
     }
+
+    retransmit(&std_socket, serverfd, data, timeout, retries, &mut file)
+}
+
+fn retransmit(
+    std_socket: &UdpSocket,
+    serverfd: &UdpSocket,
+    data: &Message,
+    timeout: u64,
+    retries: i32,
+    mut file: &File,
+) -> Result<(), String> {
+    let mut buf = [0u8];
+
     for n in 0..retries {
         match std_socket.recv(&mut buf) {
             Ok(_len) => {
@@ -97,35 +111,35 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
                     std::thread::sleep(Duration::from_secs(timeout));
                     continue;
                 }
-                    
+
                 println!("[CLIENT] Received ACK/Sequence Number = {}", buf[0]);
-                return Ok(())
+                return Ok(());
             }
             Err(_e) => {
                 println!("[CLIENT] No ACK, Retrying..({})", n);
                 _ = send_message(serverfd, data);
                 _ = writeln!(file, "[RETRANSMISSION]");
             }
-        }   
+        }
 
         std::thread::sleep(Duration::from_secs(timeout));
     }
 
-    return Err(("[CLIENT] Did not receive ACK. Exiting program.").into());
-    
+    Err("[CLIENT] Did not receive ACK. Exiting program.".into())
 }
 
-// Reading a response
-pub fn client_response_handler(socket: &Socket) { 
-    let mut buffer = [0u8; 1024];
-    let _read_bytes = match recv(socket.as_raw_fd(), &mut buffer, MsgFlags::empty()) {
-        Ok(b) => {b},
-        Err(_b) => {
-            println!("Bytes not received");
-            return;
-        }
-    };
+pub fn listen_keyboard() -> String {
+    let mut input = BufReader::new(File::open("/dev/tty").unwrap());
+    print!("[CLIENT] Enter Message\n>>");
+    std::io::stdout().flush().unwrap();
 
-    println!("Message from server: {}", String::from_utf8_lossy(&buffer));
+    let mut user_input = String::new();
+    input.read_line(&mut user_input).expect("Failed to get input");
+    return user_input;
 }
+
+pub fn create_message(seq_num: u8, msg: String) -> Message {
+    return Message { seq_number: seq_num, message: msg }
+}
+
 // --- END ---
