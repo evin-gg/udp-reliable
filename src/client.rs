@@ -41,6 +41,14 @@ async fn main() {
         }
     };
 
+    let fileclone = match file.try_clone() {
+        Ok(f) => {f},
+        Err(e) => {
+            println!("[CLIENT] Error cloning file: {}", e);
+            process::exit(1);
+        }
+    };
+
     // connect to server
     let socket = match client_connect(&args) {
         Ok(s) => s,
@@ -88,7 +96,7 @@ async fn main() {
         _ = writeln!(file, "[SENT]");
 
         // wait for ack, if no response in time resend
-        match wait_ack(&std_socket, &data, args.timeout, args.max_retries.into()) {
+        match wait_ack(&std_socket, &data, args.timeout, args.max_retries.into(), &fileclone) {
             Ok(()) => {_ = writeln!(file, "[ACK]")},
             Err(e) => {
                 println!("{}", e);

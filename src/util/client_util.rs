@@ -3,7 +3,8 @@
 // standard network sockets and addresses
 use std::os::fd::AsRawFd;
 use std::net::{IpAddr, SocketAddrV4, SocketAddrV6, UdpSocket};
-
+use std::fs::File;
+use std::io::Write;
 // time
 use std::time::Duration;
 
@@ -11,7 +12,8 @@ use std::time::Duration;
 use nix::sys::socket::{
     MsgFlags, recv
 };
-
+// process exit
+use::std::{process};
 // network sockets
 use socket2::{Domain, Protocol, SockAddr, Socket, Type};
 
@@ -66,7 +68,8 @@ pub fn send_message(serverfd: &UdpSocket, data: &Message) -> Result<(), String> 
     Ok(())
 }
 
-pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32) -> Result<(), String> {
+pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32, mut file: &File) -> Result<(), String> {
+
     let cloned_fd = serverfd.try_clone().unwrap();
     let std_socket: UdpSocket = cloned_fd.into();
 
@@ -91,6 +94,7 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
                 if buf[0] != data.seq_number {
                     println!("[CLIENT] Out of order packet. Retrying..({})", n);
                     _ = send_message(serverfd, data);
+                    _ = writeln!(file, "[RETRANSMISSION]");
                     std::thread::sleep(Duration::from_secs(timeout));
                     continue;
                 }
@@ -101,6 +105,7 @@ pub fn wait_ack(serverfd: &UdpSocket, data: &Message, timeout: u64, retries: i32
             Err(_e) => {
                 println!("[CLIENT] No ACK, Retrying..({})", n);
                 _ = send_message(serverfd, data);
+                _ = writeln!(file, "[RETRANSMISSION]");
             }
         }   
 
