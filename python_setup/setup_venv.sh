@@ -2,7 +2,7 @@
 
 set -e
 
-mkdir ../loggers
+mkdir ../loggers/logs
 # Name of the venv folder
 VENV_DIR="../loggers"
 
