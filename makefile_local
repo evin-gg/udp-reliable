@@ -1,7 +1,7 @@
-proxyIP = 192.168.1.95
+proxyIP = 127.0.0.1
 proxyPORT = 40000
 
-serverIP = 192.168.1.81
+serverIP = 192.168.1.96
 serverPORT = 40000
 
 build:

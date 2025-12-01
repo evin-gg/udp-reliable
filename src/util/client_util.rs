@@ -75,7 +75,7 @@ pub fn wait_ack(
 
     let mut buf = [0u8];
 
-    std::thread::sleep(Duration::from_millis(200));
+    std::thread::sleep(Duration::from_millis(1000));
 
     // Special case when retries == 0
     if retries == 0 {

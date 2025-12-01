@@ -11,7 +11,7 @@ pub async fn listen_proxy(listen_ip: &String, listen_port: &String) -> Result<Ud
     let sock = match UdpSocket::bind(addr).await {
         Ok(s) => s,
         Err(e) => {
-            return Err(format!("[PROXY] Error creating client socket: {}", e));
+            return Err(format!("[PROXY] Error binding proxy socket for client: {}", e));
         }
     };
 
@@ -23,7 +23,7 @@ pub async fn connect_proxy(target_ip: &String, target_port: &String) -> Result<U
     let socket = match UdpSocket::bind("0.0.0.0:0").await {
         Ok(s) => s,
         Err(e) => {
-            return Err(format!("[PROXY] Error creating server socket: {}", e));
+            return Err(format!("[PROXY] Error binding proxy socket for server: {}", e));
         }
     };
     match socket.connect(addr).await {
