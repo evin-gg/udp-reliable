@@ -2,6 +2,7 @@
 
 set -e
 
+mkdir ../loggers
 mkdir ../loggers/logs
 # Name of the venv folder
 VENV_DIR="../loggers"
@@ -20,8 +21,7 @@ if [ -f "requirements.txt" ]; then
     echo "Installing requirements..."
     pip install -r requirements.txt
 else
-    echo "requirements.txt not found!"
-    echo "Place it in the same directory as this script."
+    echo "requirements.txt not found"
     exit 1
 fi
 
@@ -30,5 +30,8 @@ mkdir -p logs
 touch "$VENV_DIR/logs/client.log" 
 touch "$VENV_DIR/logs/proxy.log" 
 touch "$VENV_DIR/logs/server.log"
+
+echo "Copying python scripts to directory..."
+cp client_graph.py proxy_graph.py server_graph.py ../loggers/
 
 echo "Setup complete!"
