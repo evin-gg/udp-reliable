@@ -15,7 +15,7 @@ use data_types::ProxyArgs;
 
 // functions and utility
 use crate::util::proxy_util::{
-    chance, connect_proxy, forward_packet_client, forward_packet_server, listen_proxy,
+    drop_chance, delay_chance, connect_proxy, forward_packet_client, forward_packet_server, listen_proxy,
     random_delay, validate_proxy_args,
 };
 use std::fs::File;
@@ -153,15 +153,17 @@ async fn main() {
                 println!("\n----------------MESSAGE----------------");
                 println!("[PROXY] {} bytes CLIENT -> PROXY", n);
 
-                if chance(args.client_drop) {
+                if drop_chance(args.client_drop) {
                     println!("[PROXY] Client packet stays");
 
-                    if chance(args.client_delay) {
+                    if delay_chance(args.client_delay) {
+                        
                         let delay = random_delay(args.client_delay_time_min, args.client_delay_time_max);
+                        println!("[PROXY] Client packet delayed {} ms", delay);
                         let server_socket = Arc::clone(&server_socket);
                         tokio::spawn(async move {
                             tokio::time::sleep(Duration::from_millis(delay)).await;
-                            println!("[PROXY] Client packet delayed {} ms", delay);
+                            
                             
                             forward_packet_server(&server_socket, &client_incoming, n).await;
                         });
@@ -183,16 +185,18 @@ async fn main() {
                 let n = event2.unwrap();
                 println!("[PROXY] {} bytes PROXY <- SERVER", n);
 
-                if chance(args.server_drop) {
+                if drop_chance(args.server_drop) {
                     println!("[PROXY] Server packet stays");
                     let listening_socket = Arc::clone(&listening_socket);
                     let listening_socket_forward = Arc::clone(&listening_socket);
 
-                    if chance(args.server_delay) {
+                    if delay_chance(args.server_delay) {
+                        
                         let delay = random_delay(args.server_delay_time_min, args.server_delay_time_max);
+                        println!("[PROXY] Server packet delayed {} ms", delay);
                         tokio::spawn(async move {
                             tokio::time::sleep(Duration::from_millis(delay)).await;
-                            println!("[PROXY] Client packet delayed {} ms", delay);
+                            
                             forward_packet_client(
                                 &listening_socket,
                                 &client_addr,
@@ -213,7 +217,7 @@ async fn main() {
                     
                     _ = writeln!(file, "[ACK]");
                 } else {
-                    println!("[PROXY] Client packet dropped");
+                    println!("[PROXY] Server packet dropped");
                 }
 
 

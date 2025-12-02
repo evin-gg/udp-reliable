@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use std::time::Duration;
-
 use crate::{data_types::ProxyArgs, util::networking_util::check_valid_ip};
 use rand::Rng;
 use tokio::net::UdpSocket;
@@ -63,7 +61,14 @@ pub fn validate_proxy_args(args: &ProxyArgs) -> Result<(), String> {
     Ok(())
 }
 
-pub fn chance(chance: u32) -> bool {
+pub fn delay_chance(chance: u32) -> bool {
+    let mut rng = rand::rng();
+    let mut roll: u32 = rng.random_range(..100);
+    roll += 1;
+    roll < chance
+}
+
+pub fn drop_chance(chance: u32) -> bool {
     let mut rng = rand::rng();
     let mut roll: u32 = rng.random_range(..100);
     roll += 1;

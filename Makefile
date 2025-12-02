@@ -10,11 +10,11 @@ build:
 
 nclient:
 	cargo build --bin client
-	./target/debug/client --target-ip 192.168.1.96 --target-port 50000 --timeout 1 --max-retries 1
+	./target/debug/client --target-ip  $(proxyIP) --target-port $(proxyPORT) --timeout 1 --max-retries 1
 
 nserver:
 	cargo build --bin server
-	./target/debug/server --listen-ip 192.168.1.96 --listen-port 50000
+	./target/debug/server --listen-ip $(serverIP) --listen-port $(serverPORT)
 
 client:
 	cargo build --bin client
