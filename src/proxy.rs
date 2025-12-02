@@ -168,9 +168,10 @@ async fn main() {
 
                     } else {
                         println!("[PROXY] Client packet not delayed");
+                        let server_socket_clone = Arc::clone(&server_socket);
+                        forward_packet_server(&server_socket_clone, &client_incoming, n).await;
                     }
-                    let server_socket_clone = Arc::clone(&server_socket);
-                    forward_packet_server(&server_socket_clone, &client_incoming, n).await;
+                    
                 } else {
                     println!("[PROXY] Client packet dropped");
                 }
@@ -201,14 +202,15 @@ async fn main() {
                         });
                     } else {
                         println!("[PROXY] Server packet not delayed");
-                    }
-
-                    forward_packet_client(
+                        forward_packet_client(
                         &listening_socket_forward,
                         &client_addr,
                         &server_incoming,
                         n
                     ).await;
+                    }
+
+                    
                     _ = writeln!(file, "[ACK]");
                 } else {
                     println!("[PROXY] Client packet dropped");
