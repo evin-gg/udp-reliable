@@ -53,6 +53,13 @@ pub fn validate_proxy_args(args: &ProxyArgs) -> Result<(), String> {
         }
     }
 
+    if args.client_delay > 100 || 
+    args.server_delay > 100 ||
+    args.client_drop > 100 ||
+    args.server_drop > 100 {
+        return Err(format!("[PROXY] : Delays or drop chances cannot be greater than 100").into());
+    }
+
     Ok(())
 }
 
@@ -63,11 +70,16 @@ pub fn chance(chance: u32) -> bool {
     roll > chance
 }
 
-pub fn random_delay(min_delay: u32, max_delay: u32) -> () {
+// pub fn random_delay(min_delay: u32, max_delay: u32) -> () {
+//     let mut rng = rand::rng();
+//     let delay_length = rng.random_range(min_delay..=max_delay);
+//     println!("[PROXY] Client packet delayed by {} ms", delay_length);
+//     std::thread::sleep(Duration::from_millis(delay_length.into()));
+// }
+
+pub fn random_delay(min_delay: u32, max_delay: u32) -> u64 {
     let mut rng = rand::rng();
-    let delay_length = rng.random_range(min_delay..=max_delay);
-    println!("[PROXY] Client packet delayed by {} ms", delay_length);
-    std::thread::sleep(Duration::from_millis(delay_length.into()));
+    rng.random_range(min_delay..=max_delay) as u64
 }
 
 pub async fn forward_packet_server(

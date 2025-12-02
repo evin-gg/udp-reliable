@@ -1,8 +1,8 @@
 proxyIP = 192.168.1.95
 proxyPORT = 40000
 
-serverIP = 192.168.1.81
-serverPORT = 40000
+serverIP = 192.168.1.95
+serverPORT = 40001
 
 build:
 	cargo clean
@@ -113,3 +113,93 @@ proxy6:
 		--client-delay-time-max 3000 \
 		--server-delay-time-min 0 \
 		--server-delay-time-max 0 \
+
+proxy7:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 50 \
+		--server-drop 0 \
+		--client-delay 0 \
+		--server-delay 0 \
+		--client-delay-time-min 0 \
+		--client-delay-time-max 0 \
+		--server-delay-time-min 0 \
+		--server-delay-time-max 0 \
+
+proxy8:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 100 \
+		--server-drop 0 \
+		--client-delay 0 \
+		--server-delay 0 \
+		--client-delay-time-min 0 \
+		--client-delay-time-max 0 \
+		--server-delay-time-min 0 \
+		--server-delay-time-max 0 \
+
+proxy9:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 0 \
+		--server-drop 0 \
+		--client-delay 0 \
+		--server-delay 50 \
+		--client-delay-time-min 2500 \
+		--client-delay-time-max 3000 \
+		--server-delay-time-min 2500 \
+		--server-delay-time-max 3000 \
+
+proxy10:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 0 \
+		--server-drop 0 \
+		--client-delay 0 \
+		--server-delay 100 \
+		--client-delay-time-min 2500 \
+		--client-delay-time-max 3000 \
+		--server-delay-time-min 2500 \
+		--server-delay-time-max 3000 \
+
+proxy11:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 0 \
+		--server-drop 50 \
+		--client-delay 0 \
+		--server-delay 50 \
+		--client-delay-time-min 2500 \
+		--client-delay-time-max 3000 \
+		--server-delay-time-min 2500 \
+		--server-delay-time-max 3000 \
+
+proxy12:
+	cargo build --bin proxy
+	./target/debug/proxy --listen-ip $(proxyIP) \
+		--listen-port $(proxyPORT) \
+		--target-ip $(serverIP) \
+		--target-port $(serverPORT) \
+		--client-drop 50 \
+		--server-drop 50 \
+		--client-delay 50 \
+		--server-delay 50 \
+		--client-delay-time-min 2500 \
+		--client-delay-time-max 3000 \
+		--server-delay-time-min 2500 \
+		--server-delay-time-max 3000 \
